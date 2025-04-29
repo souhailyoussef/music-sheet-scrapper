@@ -6,8 +6,7 @@ async function run() {
 		const ScraperClass = scrapers[key];
 		const scraper = new ScraperClass();
 		try {
-			console.log(`scrapping ${key}...`);
-			console.log(scraper);
+			console.log(scraper.toString());
 			await scraper.scrape();
 
 		} catch (e) {
@@ -16,6 +15,7 @@ async function run() {
 		}
 
 	}
+	console.log('********* SCRAPING COMPLETE ****************');
 }
 
 run();

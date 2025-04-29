@@ -16,6 +16,8 @@ class ArabicMusicalScoreScraper extends BaseScraper {
 		$ = cheerio.load(data);
 		parseTable().catch(err => console.log(err));
 	}
+
+	toString = () => 'CURRENT SCRAPER: ArabicMusicalScoreScraper';
 }
 
 
