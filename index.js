@@ -2,6 +2,7 @@ const scrapers = require('./scrapers/scrapers');
 
 async function run() {
 	console.log(scrapers);
+	const start = performance.now();
 	for (const key in scrapers) {
 		const ScraperClass = scrapers[key];
 		const scraper = new ScraperClass();
@@ -15,7 +16,9 @@ async function run() {
 		}
 
 	}
+	const end = performance.now();
 	console.log('********* SCRAPING COMPLETE ****************');
+	console.log(`execution time = ${end - start} ms`);
 }
 
 run();

@@ -49,14 +49,16 @@ async function handlePageData($) {
     const composer = info.find('li').first(); 
     const title = $$('.et-db #et-boc .et-l .et_pb_wc_title h1').text().trim();
     const builder = new SheetBuilder();
-    builder.setTitle(title);
-    builder.setComposer(composer.text().trim().replace('Music composed by ', ''));
-    builder.setDifficulty();
-    builder.setDownloadLink(link);
-    builder.setGenre();
-    builder.setParts();
-    builder.setUrl(url);
-    appendToFile(builder.build());
+    const sheet = builder
+         .setTitle(title)
+         .setComposer(composer.text().trim().replace('Music composed by ', ''))
+         .setDifficulty()
+         .setDownloadLink(link)
+         .setGenre()
+         .setParts()
+         .setUrl(url)
+         .build();
+    appendToFile(sheet);
  }
 
 module.exports = DokanBachScraper;

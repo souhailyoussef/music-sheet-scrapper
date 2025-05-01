@@ -3,7 +3,6 @@ const cheerio = require('cheerio');
 const { SheetBuilder } = require('../model/sheet');
 const {appendToFile} = require('../util/fileWriter');
 const BaseScraper = require('./baseScraper');
-const {downloadFile} = require('./../util/fileDownloader');
 
 
 let $;
@@ -54,8 +53,6 @@ async function scrapeDownloadPage(link) {
     const $$ = cheerio.load(data);
 	const url = ($$('.download-box a.button')).attr('href');
 	return url;
-	//downloadFile(url, filename);
-
 }
 
 

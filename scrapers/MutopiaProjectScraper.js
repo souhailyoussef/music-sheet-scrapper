@@ -75,14 +75,14 @@ class MutopiaProjectScraper extends BaseScraper {
         const url = $(subRows.get(4)).find('td').eq(1).find('a').attr('href')?.trim();
         const downloadLink = url;
         const builder = new SheetBuilder();
-        builder.setTitle(title);
-        builder.setComposer(composer);
-        builder.setDifficulty();
-        builder.setDownloadLink(downloadLink);
-        builder.setGenre(genre);
-        builder.setParts(parts);
-        builder.setUrl(url);
-        appendToFile(builder.build());
+        const sheet = builder.setTitle(title)
+            .setComposer(composer)
+            .setDownloadLink(downloadLink)
+            .setGenre(genre)
+            .setParts(parts)
+            .setUrl(url)
+            .build();
+        appendToFile(sheet);
     }
     
 

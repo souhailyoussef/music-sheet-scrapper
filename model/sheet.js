@@ -51,6 +51,22 @@ class Sheet {
     get downloadLink() {
         return this._downloadLink;
     }
+
+    set maqam(maqam) {
+        this._maqam = maqam;
+    }
+
+    get maqam() {
+        return this._maqam;
+    }
+
+    set rythm(rythm) {
+        this._rythm = rythm;
+    } 
+
+    get rythm() {
+        return this._rythm;
+    }
 }
 
 class SheetBuilder {
@@ -90,6 +106,16 @@ class SheetBuilder {
 
     setDownloadLink(downloadLink) {
         this.sheet.downloadLink = downloadLink;
+        return this;
+    }
+
+    setMaqam(maqam) {
+        this.sheet.maqam = maqam;
+        return this;
+    }
+
+    setRythm(rythm) {
+        this.sheet.rythm = rythm;
         return this;
     }
 
