@@ -1,88 +1,84 @@
 const cheerio = require('cheerio');
 const BaseScraper = require('./baseScraper');
-const {appendToFile} = require('../util/fileWriter');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 const { SheetBuilder } = require('../model/sheet');
+const axios = require('axios');
 
 
-url = 'https://www.salahelmahdi.com/musique'
 batch = 10;
-var $;
 var browser;
 class SalahMahdiScraper extends BaseScraper {
 
+    constructor(dbEnabled, dbName) {
+        super(dbEnabled, dbName);
+        this.url = 'https://www.salahelmahdi.com/musique';
+    }
 
     async scrape() {
-        const totalPages = await countTotal(url);
+        const totalPages = await this.countTotal(this.url);
         console.log(`${totalPages} pages to scrape...`);
-        for (let currPage=1; currPage<=5; currPage++) {
-            await fetchPage(currPage, url)
-            .then(parsePage)
-            .then(handlePageData);
+        for (let currPage=1; currPage<=totalPages; currPage++) {
+            await this.fetchPage(currPage, this.url)
+            .then($ => this.parsePage($))
+            .then(data => this.handlePageData(data));
         }
         
     }
 
     toString = () => 'CURRENT SCRAPER: SalahMahdiScraper';
 
-}
-
-async function countTotal(url) {
-    browser = await puppeteer.launch({headless: false});
-    const page = await browser.newPage();
-    await page.goto(`${url}`, {waitUntil: 'networkidle2'});
-    const content = await page.content();
-    const $$$ = cheerio.load(content);
-    total = $$$('ul.pagination li').eq(-2).find('a').text().trim();
-    return total;
-}
-
- async function fetchPage(index, url) {
-        console.log(`scrapping page ${index}`);
+    async countTotal(url) {
+        browser = await puppeteer.launch();
         const page = await browser.newPage();
-        await page.goto(`${url}?page=${index}`, {waitUntil: 'networkidle2'});
+        await page.goto(`${url}`, {waitUntil: 'domcontentloaded'});
         const content = await page.content();
+        const $$$ = cheerio.load(content);
+        const total = $$$('ul.pagination li').eq(-2).find('a').text().trim();
         page.close();
-        return content;
+        return total;
     }
     
-    function parsePage(data) {
-        $ = cheerio.load(data);
-        return $;
-    }
+     async fetchPage(index, url) {
+            console.log(`scrapping page ${index}`);
+            const {data} = await axios.get(`${url}?page=${index}`);
+            return data;
+        }
+        
+        parsePage(data) {
+            const $ = cheerio.load(data);
+            return $;
+        }
+        
+        async handlePageData($) {
+            const rows = $('table tbody tr');
+            rows.each((idx, row) => this.parseRow($, row))
+        }
     
-    async function handlePageData() {
-        const rows = $('table tbody tr');
-        rows.each((idx, row) => parseRow(row))
-    }
+        async parseRow($,row) {
+            const id = $(row).find('td').eq(0).text().trim();
+            await this.fetchAdditionalInfo(id);
+        }
+    
+        async fetchAdditionalInfo(id) {
+            const {data} = await axios.get(`${this.url}/${id}`);
+            const $$ = cheerio.load(data);
+            const title = $$('#main .title h2').text().trim();
+            const rows = $$('#main #demoTab table tr');
+            const maqam = $$(rows).eq(2).find('td').eq(1).text()?.trim();
+            const rythm = $$(rows).eq(3).find('td').eq(1).text()?.trim();
+            const link = $$('#sidebar ul li:contains("Télécharger la partition musicale") a').attr('href');
+            const builder = new SheetBuilder();
+            const sheet = builder.setTitle(title)
+                .setDownloadLink(link)
+                .setMaqam(maqam)
+                .setRythm(rythm)
+                .setUrl(link)
+                .build();
+            super.saveData(sheet);
+        }
 
-    async function parseRow(row) {
-        const id = $(row).find('td').eq(0).text().trim();
-        await fetchAdditionalInfo(id);
-    }
-
-    async function fetchAdditionalInfo(id) {
-        const page = await browser.newPage();
-        await page.goto(`${url}/${id}`, {waitUntil: 'networkidle2'});
-        const content = await page.content();
-        page.close();
-        const $$ = cheerio.load(content);
-        const title = $$('#main .title h2').text().trim();
-        const rows = $$('#main #demoTab table tr');
-        const maqam = $$(rows).eq(2).find('td').eq(1).text()?.trim();
-        const rythm = $$(rows).eq(3).find('td').eq(1).text()?.trim();
-        const link = $$('#sidebar ul li:contains("Télécharger la partition musicale") a').attr('href');
-        const builder = new SheetBuilder();
-        const sheet = builder.setTitle(title)
-            .setDownloadLink(link)
-            .setMaqam(maqam)
-            .setRythm(rythm)
-            .setUrl(link)
-            .build();
-        appendToFile(sheet);
-    }
-
+}
 
 module.exports = SalahMahdiScraper;

@@ -5,12 +5,12 @@ const folderPath = path.join(__dirname, '..', 'output');
 const filePath = path.join(folderPath, 'data.json');
 
 if (!fs.existsSync(filePath)) {
-        console.log(`*********** ${filePath} file doesnt exist, creating file! **************`)
+        console.log(`**************** ${filePath} file doesnt exist, creating file! ****************`)
         fs.mkdirSync(folderPath, { recursive: true });
         fs.writeFileSync(filePath , '[]','utf8');
-        console.log(`*********** ${filePath} file created! **************`)
+        console.log(`**************** ${filePath} file created! ****************`)
 } else {
-    console.log('\n *********** content of file has been erased **************\n');
+    console.log('\n **************** content of file has been erased ****************\n');
     fs.writeFileSync(filePath,'[]' ,'utf8');
 }
 

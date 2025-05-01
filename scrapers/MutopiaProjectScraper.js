@@ -1,26 +1,27 @@
-const axios = require('axios');
 const cheerio = require('cheerio');
 const BaseScraper = require('./baseScraper');
-const {appendToFile} = require('../util/fileWriter');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 const { SheetBuilder } = require('../model/sheet');
 
 
-url = 'https://www.mutopiaproject.org/cgibin/make-table.cgi?Instrument=Violin'
-total = 0;
+let browser;
 batch = 10;
-var $;
 class MutopiaProjectScraper extends BaseScraper {
 
 
+    constructor(dbEnabled, dbName) {
+        super(dbEnabled, dbName);
+        this.url = 'https://www.mutopiaproject.org/cgibin/make-table.cgi?Instrument=Violin'
+    }
+
     async scrape() {
-        await countTotal();
+        const total = await this.countTotal();
         for (let startAt=0; startAt<=total; startAt+=10) {
-            await fetchPage(startAt, url)
-            .then(parsePage)
-            .then(handlePageData);
+            await this.fetchPage(startAt, this.url)
+            .then($ => this.parsePage($))
+            .then($ => this.handlePageData($));
         }
         
     }
@@ -28,12 +29,11 @@ class MutopiaProjectScraper extends BaseScraper {
 
     toString = () => 'CURRENT SCRAPER: MutopiaProjectScraper';
 
-}
-  
-    async function countTotal() {
-        const browser = await puppeteer.launch({headless: true});
+    async countTotal() {
+        let total;
+        browser = await puppeteer.launch({headless: true});
         const page = await browser.newPage();
-        await page.goto(`https://www.mutopiaproject.org/instruments.html`, {waitUntil: 'networkidle2'});
+        await page.goto(`https://www.mutopiaproject.org/instruments.html`, {waitUntil: 'domcontentloaded'});
         const content = await page.content();
         const $$ = cheerio.load(content);
         $$('.browse-list li').each((index, elt) => {
@@ -42,31 +42,32 @@ class MutopiaProjectScraper extends BaseScraper {
                 total = extractNumber(text);
             }
         })
-        await browser.close();
+        page.close();
+        return total;
     }
 
-    async function fetchPage(startAt, url) {
+    async fetchPage(startAt, url) {
         console.log(`scrapping page ${startAt/batch}`);
-        const browser = await puppeteer.launch({headless: true});
         const page = await browser.newPage();
-        await page.goto(`${url}&startat=${startAt}`, {waitUntil: 'networkidle2'});
+        await page.goto(`${url}&startat=${startAt}`, {waitUntil: 'domcontentloaded', headless: false});
         const content = await page.content();
+        page.close();
         return content;
     }
     
-    function parsePage(data) {
-        $ = cheerio.load(data);
+    parsePage(data) {
+        const $ = cheerio.load(data);
         return $;
     }
     
-    async function handlePageData() {
+    async handlePageData($) {
         const rows = $('.result-table tbody');
         rows.each(((i, item) => {
-            parseRow(item);
+            this.parseRow($, item);
         }))
     }
 
-    async function parseRow(row) {
+    async parseRow($, row) {
         const subRows = $(row).find('tr');
         const title = $(subRows.get(0)).find('td').eq(0).text();
         const composer = extractComposer($(subRows.get(0)).find('td').eq(1).text()).toLowerCase();
@@ -82,8 +83,12 @@ class MutopiaProjectScraper extends BaseScraper {
             .setParts(parts)
             .setUrl(url)
             .build();
-        appendToFile(sheet);
+        super.saveData(sheet);
     }
+
+}
+  
+  
     
 
     function extractComposer(str) {

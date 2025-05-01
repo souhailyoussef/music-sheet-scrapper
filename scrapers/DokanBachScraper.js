@@ -2,46 +2,60 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const BaseScraper = require('./baseScraper');
 const { SheetBuilder } = require('../model/sheet');
-const {appendToFile} = require('../util/fileWriter');
 
 
-const url = 'http://dokanbach.com/shop/page';
+
+const axiosInstance = axios.create({
+    timeout: 10000,
+    headers: {
+      'Accept-Encoding': 'gzip, deflate, br',
+      'User-Agent': 'DokanBachScraper/1.0'
+    }
+  });
 
 class DokanBachScraper extends BaseScraper {
+
+    constructor(dbEnabled, dbName) {
+        super(dbEnabled, dbName);
+        this.url = 'http://dokanbach.com/shop/page';
+    }
+
     async scrape() {
         const lastPage = 13;
         for (let i=1; i<=lastPage; i++) {
-            const pageUrl = `${url}/${i}`;
-            await fetchPage(pageUrl)
-            .then(parsePage)
-            .then(handlePageData)
+            const pageUrl = `${this.url}/${i}`;
+            await this.fetchPage(i, pageUrl)
+            .then(data => this.parsePage(data))
+            .then($ => this.handlePageData($))
             .catch(err => console.log(`error scrapping page ${i}`));
         }
+        await this.closeDatabaseConnection();
     }
 
     toString = () => 'CURRENT SCRAPER: DokanBachScraper';
-}
 
-async function fetchPage(url) {
-    const { data } = await axios.get(url);
+    
+    async fetchPage(i, url) {
+    console.log(`parsing page ${i}`);
+    const { data } = await axiosInstance.get(url);
     return data;
 }
 
-function parsePage(data) {
+    async parsePage(data) {
     const $ = cheerio.load(data);
     return $;
 }
 
-async function handlePageData($) {
+    async handlePageData($) {
     const items = $('.products .product a');
     for (const elt of items) {
         const link = $(elt).attr('href');
-        await loadSheetInfo(link);
+        await this.loadSheetInfo(link);
     }
 }
 
- async function loadSheetInfo(url) {
-    const {data} = await axios.get(url);
+    async loadSheetInfo(url) {
+    const {data} = await axiosInstance.get(url);
     const $$ = cheerio.load(data);
     const btn = $$('.et_pb_button_0');
     const link = btn.attr('href');
@@ -58,7 +72,9 @@ async function handlePageData($) {
          .setParts()
          .setUrl(url)
          .build();
-    appendToFile(sheet);
+    await super.saveData(sheet);
  }
+
+}
 
 module.exports = DokanBachScraper;

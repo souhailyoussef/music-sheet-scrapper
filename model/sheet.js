@@ -1,3 +1,21 @@
+const {mongoose} = require('../util/db');
+
+const sheetSchema = new mongoose.Schema({
+    title: String,
+    composer: String,
+    genre: String,
+    difficulty: String,
+    parts: String,
+    url: String,
+    downloadLink: String,
+    maqam: String,
+    rythm: String
+  }, {timestamps: true});
+
+  
+const SheetModel = mongoose.model('Sheet', sheetSchema);
+
+
 class Sheet {
     constructor() {}
 
@@ -67,6 +85,34 @@ class Sheet {
     get rythm() {
         return this._rythm;
     }
+
+    toModel() {
+        return new SheetModel({
+            title: this.title,
+            composer: this.composer,
+            genre: this.genre,
+            difficulty: this.difficulty,
+            parts: this.parts,
+            url: this.url,
+            downloadLink: this.downloadLink,
+            maqam: this.maqam,
+            rythm: this.rythm,
+        });
+    }
+
+    static fromRawObject(obj) {
+        const sheet = new Sheet();
+    
+        for (const key in obj) {
+            if (key.startsWith('_')) {
+                const publicKey = key.slice(1);
+                if (publicKey in sheet) {
+                    sheet[publicKey] = obj[key];
+                }
+            }
+        }
+        return sheet;
+    }
 }
 
 class SheetBuilder {
@@ -121,7 +167,7 @@ class SheetBuilder {
 
     build() {
         return this.sheet;
-    }
+    } 
 }
 
-module.exports = { Sheet, SheetBuilder };
+module.exports = { Sheet, SheetBuilder, SheetModel};
